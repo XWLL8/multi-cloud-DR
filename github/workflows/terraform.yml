@@ -1,0 +1,15 @@
+# Example snippet for GitHub Actions
+jobs:
+  terraform:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Terraform Setup
+        uses: hashicorp/setup-terraform@v2
+      
+      - name: Terraform Plan
+        run: terraform plan -out=tfplan
+        
+      - name: Terraform Apply
+        if: github.ref == 'refs/heads/main'
+        run: terraform apply tfplan
