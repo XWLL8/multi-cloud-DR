@@ -1,16 +1,25 @@
-resource "aws_ecr_repository" "foo" {
-  name                 = "bar"
-  image_tag_mutability = "MUTABLE"
+resource "aws_security_group" "ecs_sg" {
+  name   = "${var.project_name}-ecs-sg"
+  vpc_id = aws_vpc.main.id
 
-  image_scanning_configuration {
-    scan_on_push = true
+  ingress {
+    from_port       = var.container_port
+    to_port         = var.container_port
+    protocol        = "tcp"
+    security_groups = [aws_security_group.alb.id]
+  }
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
   }
 }
 
 
 resource "aws_ecr_repository" "app_repo" {
   name                 = "my-app-repo"
-  image_tag_mutability = "MUTABLE"
+  image_tag_mutability = "MUTABLE" # risky - for production use immutable
 
   image_scanning_configuration {
     scan_on_push = true
@@ -67,7 +76,7 @@ resource "aws_ecs_service" "app_service" {
   launch_type     = "FARGATE"
 
   network_configuration {
-    subnets          = ["subnet-xxxxxxxxxxxx", "subnet-yyyyyyyyyyyy"] 
+    subnets          = var.private_subnet_ids
     assign_public_ip = true
   }
 }
