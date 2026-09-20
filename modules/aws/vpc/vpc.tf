@@ -57,18 +57,6 @@ resource "aws_subnet" "public_b" {
   }
 }
 
-resource "aws_security_group" "ALB_SG" {
-  name        = "ALB-SG"
-  description = "ALB security group - it allows inbound traffic on port 443 from any source"
-  vpc_id      = aws_vpc.main.id
-
-  ingress {
-    from_port   = 443
-    to_port     = 443
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-}
 
 resource "aws_security_group" "Container_SG" {
   name        = "Container-SG"
