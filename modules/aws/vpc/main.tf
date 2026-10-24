@@ -1,6 +1,6 @@
 
 resource "aws_vpc" "main" {
-  cidr_block = "10.0.0.0/16"
+  cidr_block           = var.vpc_cidr_block
   enable_dns_support = true
   enable_dns_hostnames = true
   tags = {
@@ -57,19 +57,6 @@ resource "aws_subnet" "public_b" {
   }
 }
 
-
-resource "aws_security_group" "Container_SG" {
-  name        = "Container-SG"
-  description = "Container security group - it allows inbound traffic on port 3000 from ALB security group"
-  vpc_id      = aws_vpc.main.id
-
-  ingress {
-    from_port   = 3000
-    to_port     = 3000
-    protocol    = "tcp"
-    security_groups = [aws_security_group.ALB_SG.id]
-  }
-}
 
 resource "aws_route_table" "public_rt" {
   vpc_id = aws_vpc.main.id
