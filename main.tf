@@ -20,6 +20,9 @@ module "alb" {
   vpc_id            = module.vpc.vpc_id
   public_subnet_ids = module.vpc.public_subnet_ids
   certificate_arn   = module.dns.certificate_arn
+  container_port    = var.container_port
+  http_port         = var.http_port
+  https_port        = var.https_port
 }
 
 module "ecs" {
@@ -32,6 +35,7 @@ module "ecs" {
   alb_security_group_id = module.alb.alb_sg
   aws_region            = var.aws_region
   alb_target_group_arn  = module.alb.alb_target_group_arn
+  create_ecs_service    = var.create_ecs_service
 }
 
 resource "aws_route53_record" "app" {

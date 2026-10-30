@@ -1,17 +1,17 @@
 resource "aws_security_group" "alb_sg" {
   name        = "${var.project_name}-alb-sg"
-  description = "ALB security group - it allows inbound traffic on port 443 from any source"
+  description = "Allow public HTTP and HTTPS traffic to the load balancer"
   vpc_id      = var.vpc_id
 
   ingress {
-    from_port   = 80
-    to_port     = 80
+    from_port   = var.http_port
+    to_port     = var.http_port
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
   ingress {
-    from_port   = 443
-    to_port     = 443
+    from_port   = var.https_port
+    to_port     = var.https_port
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
@@ -24,7 +24,7 @@ resource "aws_security_group" "alb_sg" {
 }
 
 
-resource "aws_lb" "gallery_web_alb" {
+resource "aws_lb" "alb" {
   name               = "${var.project_name}-alb"
   internal           = false
   load_balancer_type = "application"
@@ -32,9 +32,9 @@ resource "aws_lb" "gallery_web_alb" {
   subnets            = var.public_subnet_ids
 }
 
-resource "aws_lb_target_group" "gallery_web_tg" {
+resource "aws_lb_target_group" "alb_tg" {
   name        = "${var.project_name}-tg"
-  port        = 3000
+  port        = var.container_port
   protocol    = "HTTP"
   vpc_id      = var.vpc_id
   target_type = "ip"
@@ -48,27 +48,27 @@ resource "aws_lb_target_group" "gallery_web_tg" {
   }
 }
 
-resource "aws_lb_listener" "http" {
-  load_balancer_arn = aws_lb.gallery_web_alb.arn
-  port              = 443
+resource "aws_lb_listener" "https" {
+  load_balancer_arn = aws_lb.alb.arn
+  port              = var.https_port
   protocol          = "HTTPS"
   certificate_arn   = var.certificate_arn
   default_action {
     type             = "forward"
-    target_group_arn = aws_lb_target_group.gallery_web_tg.arn
+    target_group_arn = aws_lb_target_group.alb_tg.arn
   }
 }
 
 resource "aws_lb_listener" "http_redirect" {
-  load_balancer_arn = aws_lb.gallery_web_alb.arn
-  port              = 80
+  load_balancer_arn = aws_lb.alb.arn
+  port              = var.http_port
   protocol          = "HTTP"
 
   default_action {
     type = "redirect"
 
     redirect {
-      port        = "443"
+      port        = tostring(var.https_port)
       protocol    = "HTTPS"
       status_code = "HTTP_301"
     }

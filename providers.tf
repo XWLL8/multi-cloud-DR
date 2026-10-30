@@ -5,9 +5,9 @@ terraform {
       source  = "hashicorp/aws"
       version = "~> 5.0"
     }
-    google = {
-      source  = "hashicorp/google"
-      version = "~> 5.0"
+    azurerm = {
+      source  = "hashicorp/azurerm"
+      version = "~> 4.0"
     }
   }
 }
@@ -17,6 +17,10 @@ provider "aws" {
   region = "us-east-1"
 }
 
+provider "azurerm" {
+  features {}
+  subscription_id = var.azure_subscription_id
+}
 # GCP Provider Configuration
 provider "google" {
   project = "your-gcp-project-id"

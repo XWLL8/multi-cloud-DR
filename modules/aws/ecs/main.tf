@@ -27,7 +27,7 @@ resource "aws_ecr_repository" "app_repo" {
 
 
 resource "aws_iam_role" "ecs_execution_role" {
-  name = "ecs_execution_role"
+  name = "${var.project_name}-ecs-execution-role"
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
@@ -41,7 +41,7 @@ resource "aws_iam_role" "ecs_execution_role" {
 
 resource "aws_iam_role_policy_attachment" "ecs_execution_attach" {
   role       = aws_iam_role.ecs_execution_role.name
-  policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"  #fill in the correct ARN for your region
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy" #fill in the correct ARN for your region
 }
 
 resource "aws_ecs_cluster" "main_cluster" {
@@ -61,45 +61,47 @@ resource "aws_ecs_task_definition" "app_task" {
     image     = "${aws_ecr_repository.app_repo.repository_url}:latest" #replace with image tag
     essential = true
     portMappings = [{
-      containerPort = 3000
-      hostPort      = 3000
+      containerPort = var.container_port
+      hostPort      = var.container_port
     }]
     logConfiguration = {
       logDriver = "awslogs"
-      options   = {
+      options = {
         "awslogs-group"         = aws_cloudwatch_log_group.ecs_log_group.name
         "awslogs-region"        = var.aws_region
         "awslogs-stream-prefix" = "ecs"
       }
     }
     environment = [
-  { name = "REGION", value = var.aws_region },
-  { name = "CLOUD_PROVIDER", value = "aws" }
-]
+      { name = "REGION", value = var.aws_region },
+      { name = "CLOUD_PROVIDER", value = "aws" },
+      { name = "PORT", value = tostring(var.container_port) }
+    ]
   }])
 }
 
 resource "aws_ecs_service" "app_service" {
-  name            = "${var.project_name}-service"
-  cluster         = aws_ecs_cluster.main_cluster.id
-  task_definition = aws_ecs_task_definition.app_task.arn
-  desired_count   = 1
-  launch_type     = "FARGATE"
+  name                              = "${var.project_name}-service"
+  cluster                           = aws_ecs_cluster.main_cluster.id
+  task_definition                   = aws_ecs_task_definition.app_task.arn
+  desired_count                     = 2
+  count                             = var.create_ecs_service ? 1 : 0
+  launch_type                       = "FARGATE"
   health_check_grace_period_seconds = 60
   load_balancer {
     target_group_arn = var.alb_target_group_arn
     container_name   = "my-container"
-    container_port   = 3000
+    container_port   = var.container_port
   }
 
   network_configuration {
-    security_groups = [aws_security_group.ecs_sg.id]
+    security_groups  = [aws_security_group.ecs_sg.id]
     subnets          = var.private_subnet_ids
     assign_public_ip = false
   }
 }
 
 resource "aws_cloudwatch_log_group" "ecs_log_group" {
-  name              = "/ecs/my-app"
+  name              = "/ecs/${var.project_name}-log-group"
   retention_in_days = 7
 }

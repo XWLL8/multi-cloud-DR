@@ -1,7 +1,7 @@
 
 resource "aws_vpc" "main" {
   cidr_block           = var.vpc_cidr_block
-  enable_dns_support = true
+  enable_dns_support   = true
   enable_dns_hostnames = true
   tags = {
     Name = "vpc-${var.project_name}"
@@ -18,8 +18,8 @@ resource "aws_internet_gateway" "igw" {
 
 
 resource "aws_subnet" "private_a" {
-  vpc_id     = aws_vpc.main.id
-  cidr_block = "10.0.16.0/20"
+  vpc_id            = aws_vpc.main.id
+  cidr_block        = "10.0.16.0/20"
   availability_zone = "us-east-1a"
 
   tags = {
@@ -29,17 +29,17 @@ resource "aws_subnet" "private_a" {
 
 
 resource "aws_subnet" "public_a" {
-  vpc_id                  = aws_vpc.main.id
-  cidr_block              = "10.0.1.0/24"
-  availability_zone       = "us-east-1a"
+  vpc_id            = aws_vpc.main.id
+  cidr_block        = "10.0.1.0/24"
+  availability_zone = "us-east-1a"
   tags = {
     Name = "public-subnet1"
   }
 }
 
 resource "aws_subnet" "private_b" {
-  vpc_id     = aws_vpc.main.id
-  cidr_block = "10.0.32.0/20"
+  vpc_id            = aws_vpc.main.id
+  cidr_block        = "10.0.32.0/20"
   availability_zone = "us-east-1b"
 
   tags = {
@@ -48,10 +48,10 @@ resource "aws_subnet" "private_b" {
 }
 
 resource "aws_subnet" "public_b" {
-  vpc_id                  = aws_vpc.main.id
-  cidr_block              = "10.0.2.0/24"
-  availability_zone       = "us-east-1b"
-  
+  vpc_id            = aws_vpc.main.id
+  cidr_block        = "10.0.2.0/24"
+  availability_zone = "us-east-1b"
+
   tags = {
     Name = "public-subnet2"
   }
@@ -69,7 +69,7 @@ resource "aws_route_table" "public_rt" {
 
 
 resource "aws_route_table_association" "public_assoc_a" {
-  depends_on = [ aws_internet_gateway.igw ]
+  depends_on     = [aws_internet_gateway.igw]
   subnet_id      = aws_subnet.public_a.id
   route_table_id = aws_route_table.public_rt.id
 }
@@ -96,8 +96,6 @@ resource "aws_nat_gateway" "nat_gw_a" {
     Name = "nat gateway-a"
   }
 
-  # To ensure proper ordering, it is recommended to add an explicit dependency
-  # on the Internet Gateway for the VPC.
   depends_on = [aws_internet_gateway.igw]
 }
 
@@ -118,8 +116,6 @@ resource "aws_nat_gateway" "nat_gw_b" {
     Name = "nat gateway-b"
   }
 
-  # To ensure proper ordering, it is recommended to add an explicit dependency
-  # on the Internet Gateway for the VPC.
   depends_on = [aws_internet_gateway.igw]
 }
 
@@ -132,7 +128,7 @@ resource "aws_route_table" "private_rt" {
     nat_gateway_id = aws_nat_gateway.nat_gw_a.id
   }
 }
- 
+
 resource "aws_route_table" "private_rt2" {
   vpc_id = aws_vpc.main.id
 

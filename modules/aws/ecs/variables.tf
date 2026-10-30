@@ -2,9 +2,9 @@ variable "private_subnet_ids" {
   type = list(string)
 }
 
-variable "container_port"  {
-   type = number
-    }
+variable "container_port" {
+  type = number
+}
 
 variable "project_name" {
   type = string
@@ -21,4 +21,9 @@ variable "aws_region" {
 
 variable "alb_target_group_arn" {
   type = string
+}
+variable "create_ecs_service" {
+  description = "Whether to create the ECS service"
+  type        = bool
+  default     = false
 }

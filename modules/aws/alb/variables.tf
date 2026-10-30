@@ -11,3 +11,15 @@ variable "public_subnet_ids" {
 variable "certificate_arn" {
   type = string
 }
+
+variable "container_port" {
+  type = number
+}
+
+variable "http_port" {
+  type = number
+}
+
+variable "https_port" {
+  type = number
+}
