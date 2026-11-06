@@ -1,8 +1,9 @@
-name: Deploy app to ECS
+
+name: Deploy app to AWS and Azure
 
 on:
   push:
-    branches: [main, master]
+    branches: [main]
     paths:
       - "app/**"
       - ".github/workflows/deploy.yml"
@@ -10,55 +11,118 @@ on:
 
 permissions:
   contents: read
+  id-token: write
 
 concurrency:
-  group: deploy-ecs
+  group: deploy-multi-cloud
   cancel-in-progress: false
 
 env:
   AWS_REGION: us-east-1
-  ECR_REPOSITORY: multi-cloud-dr-app-repo
-  ECS_CLUSTER: multi-cloud-dr-cluster
-  ECS_SERVICE: multi-cloud-dr-service
+  AZURE_ACR_NAME: multiclouddr1bbb097d
+  AZURE_RESOURCE_GROUP: multi-cloud-dr-az
+  AZURE_CONTAINER_APP: multi-cloud-dr-app
+  AZURE_APP_DEPLOY_ENABLED: "false"
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Check out repository
+      - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Configure AWS credentials
+      - name: Configure Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.10.5
+          terraform_wrapper: false
+
+      - name: AWS authentication
         uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.AWS_REGION }}
 
-      - name: Log in to Amazon ECR
-        id: ecr
-        uses: aws-actions/amazon-ecr-login@v2
+      - name: Read AWS deployment targets
+        run: |
+          terraform init -input=false
 
-      - name: Build and push image
+          echo "ECR_REPOSITORY_URL=$(terraform output -raw ecr_repository_url)" >> "$GITHUB_ENV"
+          echo "ECS_CLUSTER=$(terraform output -raw ecs_cluster_name)" >> "$GITHUB_ENV"
+          echo "ECS_SERVICE=$(terraform output -raw ecs_service_name)" >> "$GITHUB_ENV"
+
+      - name: Azure OIDC authentication
+        uses: azure/login@v3
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Login to both registries
+        run: |
+          aws ecr get-login-password --region "$AWS_REGION" |
+            docker login \
+              --username AWS \
+              --password-stdin \
+              "$(echo "$ECR_REPOSITORY_URL" | cut -d/ -f1)"
+
+          az acr login --name "$AZURE_ACR_NAME"
+
+      - name: Build image once
         env:
-          ECR_REGISTRY: ${{ steps.ecr.outputs.registry }}
           IMAGE_TAG: ${{ github.sha }}
         run: |
           docker build \
-            --file app/dockerfile \
-            --tag "$ECR_REGISTRY/$ECR_REPOSITORY:latest" \
-            --tag "$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" \
+            --platform linux/amd64 \
+            -f app/dockerfile \
+            -t "$ECR_REPOSITORY_URL:$IMAGE_TAG" \
             app
-          docker push "$ECR_REGISTRY/$ECR_REPOSITORY:latest"
-          docker push "$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
 
-      - name: Deploy latest image to ECS
+          docker tag \
+            "$ECR_REPOSITORY_URL:$IMAGE_TAG" \
+            "$ECR_REPOSITORY_URL:latest"
+
+          docker tag \
+            "$ECR_REPOSITORY_URL:$IMAGE_TAG" \
+            "$AZURE_ACR_NAME.azurecr.io/multi-cloud-dr:$IMAGE_TAG"
+
+          docker tag \
+            "$ECR_REPOSITORY_URL:$IMAGE_TAG" \
+            "$AZURE_ACR_NAME.azurecr.io/multi-cloud-dr:latest"
+
+      - name: Push to AWS ECR
+        env:
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          docker push "$ECR_REPOSITORY_URL:$IMAGE_TAG"
+          docker push "$ECR_REPOSITORY_URL:latest"
+
+      - name: Push to Azure ACR
+        env:
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          docker push "$AZURE_ACR_NAME.azurecr.io/multi-cloud-dr:$IMAGE_TAG"
+          docker push "$AZURE_ACR_NAME.azurecr.io/multi-cloud-dr:latest"
+
+      - name: Deploy to AWS ECS
         run: |
           aws ecs update-service \
             --cluster "$ECS_CLUSTER" \
             --service "$ECS_SERVICE" \
             --force-new-deployment
+
           aws ecs wait services-stable \
             --cluster "$ECS_CLUSTER" \
             --services "$ECS_SERVICE"
+
+      - name: Deploy to Azure Container Apps
+        if: env.AZURE_APP_DEPLOY_ENABLED == 'true'
+        env:
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          az containerapp update \
+            --name "$AZURE_CONTAINER_APP" \
+            --resource-group "$AZURE_RESOURCE_GROUP" \
+            --image "$AZURE_ACR_NAME.azurecr.io/multi-cloud-dr:$IMAGE_TAG"
