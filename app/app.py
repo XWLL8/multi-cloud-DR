@@ -12,7 +12,7 @@ def root():
     return {
         "status": "healthy",
         "region": os.getenv("REGION"),
-        "cloud": os.getenv("CLOUD_PROVIDER"),  # "aws" or "gcp"
+        "cloud": os.getenv("CLOUD_PROVIDER"),  # "aws" or "azure"
         "version": "1.0"
     }
 

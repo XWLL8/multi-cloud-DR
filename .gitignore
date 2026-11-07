@@ -1,4 +1,7 @@
+# Personal notes
 mynotes.txt
+
+# Terraform
 .terraform/
 *.tfstate
 *.tfstate.*
@@ -11,3 +14,16 @@ override.tf
 override.tf.json
 *_override.tf
 *_override.tf.json
+
+# Certificates and sensitive files
+*.pfx
+*.p12
+*.pem
+*.key
+.env
+.env.*
+
+# Python
+__pycache__/
+*.pyc
+.venv/

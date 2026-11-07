@@ -19,10 +19,6 @@ concurrency:
 
 env:
   AWS_REGION: us-east-1
-  AZURE_ACR_NAME: multiclouddr1bbb097d
-  AZURE_RESOURCE_GROUP: multi-cloud-dr-az
-  AZURE_CONTAINER_APP: multi-cloud-dr-app
-  AZURE_APP_DEPLOY_ENABLED: "true"
 
 jobs:
   deploy:
@@ -51,7 +47,22 @@ jobs:
 
           echo "ECR_REPOSITORY_URL=$(terraform output -raw ecr_repository_url)" >> "$GITHUB_ENV"
           echo "ECS_CLUSTER=$(terraform output -raw ecs_cluster_name)" >> "$GITHUB_ENV"
-          echo "ECS_SERVICE=$(terraform output -raw ecs_service_name)" >> "$GITHUB_ENV"
+          ECS_SERVICE="$(terraform output -raw ecs_service_name)"
+          if [ -z "$ECS_SERVICE" ]; then
+            echo "::error::ECS service is disabled. Set create_ecs_service = true and apply Terraform before deploying."
+            exit 1
+          fi
+          echo "ECS_SERVICE=$ECS_SERVICE" >> "$GITHUB_ENV"
+
+          echo "AZURE_ACR_NAME=$(terraform output -raw azure_acr_name)" >> "$GITHUB_ENV"
+          echo "AZURE_CONTAINER_IMAGE_REPOSITORY=$(terraform output -raw azure_container_image_repository)" >> "$GITHUB_ENV"
+          echo "AZURE_RESOURCE_GROUP=$(terraform output -raw azure_resource_group_name)" >> "$GITHUB_ENV"
+          AZURE_CONTAINER_APP="$(terraform output -raw azure_container_app_name)"
+          if [ -z "$AZURE_CONTAINER_APP" ]; then
+            echo "::error::Azure Container App is disabled. Enable it and apply Terraform before deploying."
+            exit 1
+          fi
+          echo "AZURE_CONTAINER_APP=$AZURE_CONTAINER_APP" >> "$GITHUB_ENV"
 
       - name: Azure OIDC authentication
         uses: azure/login@v3
@@ -86,11 +97,11 @@ jobs:
 
           docker tag \
             "$ECR_REPOSITORY_URL:$IMAGE_TAG" \
-            "$AZURE_ACR_NAME.azurecr.io/multi-cloud-dr:$IMAGE_TAG"
+            "$AZURE_CONTAINER_IMAGE_REPOSITORY:$IMAGE_TAG"
 
           docker tag \
             "$ECR_REPOSITORY_URL:$IMAGE_TAG" \
-            "$AZURE_ACR_NAME.azurecr.io/multi-cloud-dr:latest"
+            "$AZURE_CONTAINER_IMAGE_REPOSITORY:latest"
 
       - name: Push to AWS ECR
         env:
@@ -103,8 +114,8 @@ jobs:
         env:
           IMAGE_TAG: ${{ github.sha }}
         run: |
-          docker push "$AZURE_ACR_NAME.azurecr.io/multi-cloud-dr:$IMAGE_TAG"
-          docker push "$AZURE_ACR_NAME.azurecr.io/multi-cloud-dr:latest"
+          docker push "$AZURE_CONTAINER_IMAGE_REPOSITORY:$IMAGE_TAG"
+          docker push "$AZURE_CONTAINER_IMAGE_REPOSITORY:latest"
 
       - name: Deploy to AWS ECS
         run: |
@@ -118,7 +129,6 @@ jobs:
             --services "$ECS_SERVICE"
 
       - name: Deploy to Azure Container Apps
-        if: env.AZURE_APP_DEPLOY_ENABLED == 'true'
         env:
           IMAGE_TAG: ${{ github.sha }}
         run: |
