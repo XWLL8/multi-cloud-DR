@@ -22,7 +22,7 @@ env:
   AZURE_ACR_NAME: multiclouddr1bbb097d
   AZURE_RESOURCE_GROUP: multi-cloud-dr-az
   AZURE_CONTAINER_APP: multi-cloud-dr-app
-  AZURE_APP_DEPLOY_ENABLED: "false"
+  AZURE_APP_DEPLOY_ENABLED: "true"
 
 jobs:
   deploy:
