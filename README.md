@@ -15,6 +15,8 @@ The architecture uses AWS as the primary environment and Azure as a secondary en
 
 ## Architecture Overview
 
+![Multi-Cloud AWS and Azure Architecture](docs/evidence/multi_cloud_aws_azure_architecture.png)
+
 ### AWS — Primary Environment
 
 - Amazon VPC with public and private subnets across two Availability Zones
@@ -44,7 +46,7 @@ The architecture uses AWS as the primary environment and Azure as a secondary en
 
 ## DNS Routing & High Availability
 
-The application is accessible through:
+The application was previously accessible through:
 
 `https://app.layanalghamdi.com`
 
@@ -155,6 +157,14 @@ Both health checks subsequently returned to Healthy status.
 
 ## Application Health Verification
 
+**AWS Application**
+
+![AWS application response](<docs/evidence/app is working.png>)
+
+**Azure Application**
+
+![Azure application response](<docs/evidence/app is working on azure.png>)
+
 The Python application exposes a health endpoint and identifies the serving cloud environment.
 
 Example AWS response:
@@ -246,4 +256,4 @@ Review the Terraform plan before each deployment stage.
 
 **Completed:** Multi-cloud infrastructure deployment, CI/CD integration, HTTPS configuration, weighted DNS routing, and controlled DNS failover/recovery testing.
 
-The infrastructure may be decommissioned to avoid ongoing cloud charges while the Terraform code, documentation, and test evidence remain available in this repository.
+The infrastructure was intentionally decommissioned to avoid ongoing cloud charges. The Terraform code, documentation, and test evidence remain available in this repository.
