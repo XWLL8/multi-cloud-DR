@@ -50,6 +50,8 @@ The application is accessible through:
 
 Amazon Route 53 uses weighted CNAME records with HTTPS health checks against the `/health` endpoint.
 
+Deployment Status: The cloud infrastructure has been intentionally decommissioned to avoid ongoing costs. The application is no longer publicly accessible, but the infrastructure code, CI/CD configuration, and documented test results remain available in this repository.
+
 | Environment | DNS Weight | Application Platform |
 |---|---|---|
 | AWS | 80% | ECS Fargate behind ALB |
