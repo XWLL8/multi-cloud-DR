@@ -15,7 +15,7 @@ The architecture uses AWS as the primary environment and Azure as a secondary en
 
 ## Architecture Overview
 
-![Multi-Cloud AWS and Azure Architecture](docs/evidence/multi_cloud_aws_azure_architecture.png)
+![Multi-Cloud AWS and Azure Architecture](docs/evidence/multi-cloud-architecture.png)
 
 ### AWS — Primary Environment
 
