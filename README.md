@@ -159,11 +159,11 @@ Both health checks subsequently returned to Healthy status.
 
 **AWS Application**
 
-![AWS application response](<docs/evidence/app is working.png>)
+![AWS application response](<docs/evidence/app is working aws.png>)
 
 **Azure Application**
 
-![Azure application response](<docs/evidence/app is working on azure.png>)
+![Azure application response](<docs/evidence/app is working azure.png>)
 
 The Python application exposes a health endpoint and identifies the serving cloud environment.
 
